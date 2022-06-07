@@ -1,0 +1,5 @@
+1 copy the contents of the libraries folder into your arduino libraries folder  
+* if you're using windows, it should e located  in  Documents/Arduino/liraries
+
+2 required connections to make for the circuit(at current progress) is also at the begining of the arduino code
+*you can use it to make connections easier than the schematic diagram i think lol  
