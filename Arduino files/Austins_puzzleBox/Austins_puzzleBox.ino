@@ -49,6 +49,10 @@
  * MONO Row 2 Col 4 pin to digital pin 37 
  * MONO Row 2 Col 5 pin to digital pin 35
  
+ circuit => toggle switches
+ *
+ *
+
  circuit => Emergency Button
  * Button pin 1 to digital pin 4
  * Button pin 2 to ground
@@ -66,8 +70,20 @@
 */
 #include <Keypad.h>
 #include <LiquidCrystal.h>
+#include <EEPROM.h>
 
-const int requiredNum = 4; // value that holds howmany key entries required for 9-keys
+const int requiredNum = 4; // value that holds howmany key entries required for 10-keys
+const int toggleSwitchSolAdd = 2;
+const int tenKeysSolMultAdd = 3;
+const int tenKeysSolRemAdd = 4;
+const int pswdSolMultAdd = 5;
+const int pswdSolRemAdd = 6;
+const int MonoAAdd = 7;
+const int MonoBAdd = 8;
+const int MonoCAdd = 9;
+const int MonoDAdd = 10;
+const int MonoEAdd = 11;
+
 //*****************************************************lcd pins***********
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2; 
 
@@ -76,7 +92,7 @@ const byte ROW_KP = 4;
 const byte COLS_KP = 3;
 
 //*********************************************buttons (10-keys) pins*************
-const int LED_MATRIX[11] = {48,46,44,42,40,38,36,34,32,16};
+const int LED_MATRIX[11] = {16,48,46,44,42,40,38,36,34,32};
 
 const int button1 = 23;
 const int button2 = 25;
@@ -92,7 +108,7 @@ const int Buttons[11]= {button0,button1,button2,button3,button4,button5,button6,
 
 //*****************************************************emergencyBTN pin***********
 const int emergencyBTN = 4;
-const int redyBTN = A13;
+const int redBTN = A13;
 
 //*****************************************************MONO Ports*****************
  const int MonoR1C1 = 53;
@@ -110,8 +126,8 @@ const int redyBTN = A13;
  const int MonoR2[6] = {MonoR2C1,MonoR2C2,MonoR2C3,MonoR2C4,MonoR2C5};
 
 //*********************************************Toggle Switches********************
-
-
+const int tg1=  A10,tg2 = A11,tg3 = A12,tg4 = A7,tg5 = A8,tg6 = A9;
+const int toggleSwitch[] = {tg1,tg2,tg3,tg4,tg5,tg6};
 //*********************************variable to get values from the key matrix*****
 char g ;
 char key;
@@ -156,9 +172,12 @@ for (int i = 0; i<5;i++) //set the MONO Row2 as input
 {
   pinMode(MonoR2[i],INPUT_PULLUP);
   }
+for (int i = 0; i<6;i++) //set the MONO Row2 as input
+{
+  pinMode(toggleSwitch[i],INPUT_PULLUP);
+  }
 
-}
-for (int i = 0; i<5;i++) //set the MONO Row2 as output
+for (int i = 0; i<5;i++) //set the MONO Row1 as output
 {
   pinMode(MonoR1[i],OUTPUT);
   }
@@ -177,7 +196,6 @@ while(digitalRead(emergencyBTN)==false)// when you press the emergency stop btn
     break;
     }   
     }
-get_num_bt(0,1);
 }
 }
 
@@ -222,3 +240,190 @@ int get_num_kp(int x, int y)
  }
  return (integer);
  }
+int checkButtons()
+{
+  int Sum = 0;
+  if (digitalRead(button0) == LOW)
+  {    
+    digitalWrite(LED_MATRIX[0],HIGH);
+    Sum += 1;
+  }
+  if (digitalRead(button1) == LOW)
+  {    
+    digitalWrite(LED_MATRIX[1],HIGH);
+    Sum += 2;
+  }  
+  if (digitalRead(button2) == LOW)
+  {    
+    digitalWrite(LED_MATRIX[2],HIGH);
+    Sum += 4;
+  }
+  if (digitalRead(button3) == LOW)
+  {    
+    digitalWrite(LED_MATRIX[3],HIGH);
+    Sum += 8;
+  }
+
+    if (digitalRead(button4) == LOW)
+  {    
+    digitalWrite(LED_MATRIX[4],HIGH);
+    Sum += 16;
+  }
+    if (digitalRead(button5) == LOW)
+  {    
+    digitalWrite(LED_MATRIX[5],HIGH);
+    Sum += 32;
+  }
+    if (digitalRead(button6) == LOW)
+  {    
+    digitalWrite(LED_MATRIX[6],HIGH);
+    Sum += 64;
+  }
+    if (digitalRead(button7) == LOW)
+  {    
+    digitalWrite(LED_MATRIX[7],HIGH);
+    Sum += 128;
+  }
+    if (digitalRead(button8) == LOW)
+  {    
+    digitalWrite(LED_MATRIX[8],HIGH);
+    Sum += 256;
+  }
+    if (digitalRead(button9) == LOW)
+  {    
+    digitalWrite(LED_MATRIX[9],HIGH);
+    Sum += 512;
+  }
+  return Sum;
+  }
+int checkToggleSwitches()
+{
+  int Sum = 0;
+
+  if (digitalRead(tg1) == LOW)
+    Sum += 1;
+  if (digitalRead(tg2) == LOW)
+    Sum += 2;
+  if (digitalRead(tg3) == LOW)
+    Sum += 4;
+  if (digitalRead(tg4) == LOW)
+    Sum += 8;
+  if (digitalRead(tg5) == LOW)
+    Sum += 16;
+  if (digitalRead(tg6) == LOW)
+    Sum += 32;  
+  return(Sum);
+  } 
+ void updatePSWdSol(int pswd)
+ {
+    long rem=0;
+    int mult=0;
+    rem=pswd; 
+    while(1)
+    {
+      if (rem >255)
+      {
+      rem -= 255;
+      mult +=1;
+      }
+      if (rem <= 255)
+      {
+        break;
+      }
+      }
+       
+    EEPROM.update(pswdSolRemAdd, rem);
+    EEPROM.update(pswdSolMultAdd, mult);
+  }
+  int getPswd()
+  {
+
+   int rem=0;
+   int mult=0; 
+   int value =0;
+   rem  = EEPROM.read(pswdSolRemAdd);
+   mult = EEPROM.read(pswdSolMultAdd);
+   value =(mult*255)+rem;
+   return value;
+   }
+
+void updateToggleSol(int sol)
+{
+    EEPROM.update(toggleSwitchSolAdd,sol);
+  }
+int getToggleSol()
+{
+
+ int value =0;
+ value = EEPROM.read(toggleSwitchSolAdd);
+  
+ return value;
+ }
+void update10KSol(long sol)
+ {
+    long rem=0;
+    int mult=0;
+    rem=sol; 
+    while(1)
+    {
+      if (rem >255)
+      {
+      rem -= 255;
+      mult +=1;
+      }
+      if (rem <= 255)
+      {
+        break;
+      }
+      }
+       
+    EEPROM.update(tenKeysSolRemAdd, rem);
+    EEPROM.update(tenKeysSolMultAdd, mult);
+  }
+long get10Ksol()
+  {
+
+   int rem=0;
+   int mult=0; 
+   long value =0;
+   rem  = EEPROM.read(tenKeysSolRemAdd);
+   mult = EEPROM.read(tenKeysSolMultAdd);
+   value =(mult*255)+rem;
+   return value;
+   }
+bool getMonoSol() //solution for the MONO puzzle
+{
+  int count =0;
+  int a = EEPROM.read(MonoAAdd);
+  int b = EEPROM.read(MonoBAdd);
+  int c = EEPROM.read(MonoCAdd);
+  int d = EEPROM.read(MonoDAdd);
+  int e = EEPROM.read(MonoEAdd);
+  int addresses[6] ={a,b,c,d,e} ;
+  
+for (int i=0; i<5; i++)
+{
+  digitalWrite(MonoR1[i],LOW);
+  }
+
+for (int i=0; i<5; i++)
+{
+  
+int x = addresses[i]/10;
+int y = addresses[i]%10;  
+  
+digitalWrite(MonoR1[x],HIGH);
+delay(5);
+if (digitalRead(MonoR1[y]))
+{count +=1;
+  }  
+ else{
+  digitalWrite(MonoR1[x],LOW);
+  return false;
+  break;
+  }
+  
+}
+  return true; 
+  } 
+ 
